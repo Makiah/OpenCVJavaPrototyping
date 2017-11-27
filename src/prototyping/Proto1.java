@@ -2,18 +2,12 @@ package prototyping;
 
 import java.awt.Color;
 import java.awt.Graphics;
-import java.awt.Image;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.awt.image.WritableRaster;
-import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 import javax.imageio.ImageIO;
@@ -55,7 +49,7 @@ class JPanelOpenCV extends JPanel{
                     t.window(t.grayscale(image), "Grayscale Image", 40, 60);
 
                     // The customly modified image.
-                    t.window(t.MatToBufferedImage(t.processCamFrame(frame)), "Custom modification", 80, 120);
+                    t.analyzeNewMat(frame);
 
                     //t.window(t.loadImage("ImageName"), "Image loaded", 0, 0);
 
@@ -158,7 +152,7 @@ class JPanelOpenCV extends JPanel{
     /**
      * This is where pretty much of all of the prototyping code should go.
      */
-    public Mat processCamFrame(Mat raw)
+    public void analyzeNewMat(Mat raw)
     {
         Imgproc.resize(raw,raw,new Size(480,360));
 
@@ -168,7 +162,9 @@ class JPanelOpenCV extends JPanel{
         List<MatOfPoint> contours = new ArrayList<>();
         List<Rect> boxes = new ArrayList<>();
 
-        Imgproc.cvtColor(raw,hsv,Imgproc.COLOR_RGB2HSV);
+        Imgproc.cvtColor(raw,hsv,Imgproc.COLOR_BGR2HSV);
+
+        this.window(MatToBufferedImage(hsv), "CVT color image", 0, 0);
 
         Mat kernel = Mat.ones(5,5,CvType.CV_32F);
 
@@ -176,11 +172,15 @@ class JPanelOpenCV extends JPanel{
         Imgproc.dilate(hsv,hsv,kernel);
         Imgproc.blur(hsv,hsv,new Size(6,6));
 
+        this.window(MatToBufferedImage(hsv), "Blurred image", 500, 0);
+
         Scalar lower = new Scalar(90,135,25);
         Scalar upper = new Scalar(130,250,150);
 
         Core.inRange(hsv,lower,upper,mask);
         hsv.release();
+
+        this.window(MatToBufferedImage(mask), "Mask Image", 0, 370);
 
         Mat structure = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(2,30));
         Imgproc.morphologyEx(mask,mask,Imgproc.MORPH_CLOSE, structure);
@@ -231,7 +231,8 @@ class JPanelOpenCV extends JPanel{
 
         Imgproc.resize(raw,raw, new Size(1280,960));
         mask.release();
-        return raw;
+
+        this.window(MatToBufferedImage(raw), "Final", 0, 0);
     }
 
     // Helper methods
