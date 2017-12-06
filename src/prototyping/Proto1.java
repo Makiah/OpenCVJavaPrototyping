@@ -158,54 +158,85 @@ class JPanelOpenCV extends JPanel{
     public void analyzeNewMat(Mat raw)
     {
         /////// RESIZE IMAGE ///////
-        Imgproc.resize(raw, raw, new Size(740, 480));
+        Imgproc.resize(raw, raw, new Size(740, 360));
         this.window(MatToBufferedImage(raw), "Resized", 0, 0);
 
 
         ////// Equalize luminance ///////
         Imgproc.cvtColor(raw, raw, Imgproc.COLOR_BGR2HLS);
-        List<Mat> channels = new LinkedList<Mat>();
-        Core.split(raw, channels);
-        channels.get(1).setTo(new Scalar(150));
-        channels.get(2).setTo(new Scalar(150));
-        Core.merge(channels, raw);
+
+
+        ///// Try to filter low saturation values ////
+        for (int y = 0; y < raw.rows(); y++)
+        {
+            for (int x = 0; x < raw.cols(); x++)
+            {
+                double[] pixel = raw.get(y, x);
+
+                // Fix saturation
+                if (pixel[1] < 99)
+                {
+                    pixel[1] = 100;
+                    pixel[2] = 255;
+                } else
+                {
+                    pixel[1] = 0;
+                }
+
+                raw.put(y, x, pixel);
+            }
+        }
+
+
+//        List<Mat> channels = new LinkedList<Mat>();
+//        Core.split(raw, channels);
+//        channels.get(1).setTo(new Scalar(150));
+//        channels.get(2).setTo(new Scalar(255));
+//        Core.merge(channels, raw);
         Imgproc.cvtColor(raw, raw, Imgproc.COLOR_HLS2BGR);
         this.window(MatToBufferedImage(raw), "Equalized", 500, 0);
 
+        Core.inRange(raw,
+                new Scalar(170, 0, 0),
+                new Scalar(255, 93, 52), raw);
 
-        ////// Extract blue region ///////
-        List<Mat> bgrChannels = new LinkedList<Mat>();
-        Core.split(raw, bgrChannels);
-        Mat blueGrayscale = bgrChannels.get(0);
-        this.window(MatToBufferedImage(blueGrayscale), "Blue Grayscale", 0, 380);
+        this.window(MatToBufferedImage(raw), "RGB filter", 500, 380);
 
-        /////// Absolute threshold to determine which pixels are correct.   ///////
-        Mat blueBinary = new Mat();
-        Imgproc.threshold(blueGrayscale, blueBinary, 200, 255, Imgproc.THRESH_BINARY);
-        this.window(MatToBufferedImage(blueBinary), "Blue Binary", 500, 380);
+        Imgproc.blur(raw, raw, new Size(2, 10));
+        Mat kernel = Mat.ones(15,3,CvType.CV_32F);
+        Imgproc.erode(raw,raw,kernel);
+        Imgproc.dilate(raw,raw,kernel);
+        Imgproc.threshold(raw, raw, 200, 255, Imgproc.THRESH_BINARY);
+        this.window(MatToBufferedImage(raw), "Dilated Blue Binary", 0, 0);
 
 
         ////// Erode and dilate the resulting image to remove noise ////////
-        Imgproc.blur(blueBinary, blueBinary, new Size(3, 3));
-        Mat kernel = Mat.ones(8,8,CvType.CV_32F);
-        Imgproc.erode(blueBinary,blueBinary,kernel);
-        Imgproc.dilate(blueBinary,blueBinary,kernel);
-        Imgproc.threshold(blueBinary, blueBinary, 150, 255, Imgproc.THRESH_BINARY);
-        this.window(MatToBufferedImage(blueBinary), "Dilated Blue Binary", 0, 0);
+//        Imgproc.blur(blueBinary, blueBinary, new Size(2, 10));
+//        Mat kernel = Mat.ones(5,1,CvType.CV_32F);
+//        Imgproc.erode(blueBinary,blueBinary,kernel);
+//        Imgproc.dilate(blueBinary,blueBinary,kernel);
+//        Imgproc.threshold(blueBinary, blueBinary, 200, 255, Imgproc.THRESH_BINARY);
+//        this.window(MatToBufferedImage(blueBinary), "Dilated Blue Binary", 0, 0);
+
+//        Imgproc.blur(blueBinary, blueBinary, new Size(3, 3));
+//        Imgproc.erode(blueBinary,blueBinary,kernel);
+//        Imgproc.dilate(blueBinary,blueBinary,kernel);
+//        Imgproc.threshold(blueBinary, blueBinary, 230, 255, Imgproc.THRESH_BINARY);
+//        this.window(MatToBufferedImage(blueBinary), "Dilated Blue Binary", 0, 0);
 
 
         /////// Find contours of approximately the cryptobox's shape ///////
-        List<MatOfPoint> contours = new ArrayList<>();
-        Mat hierarchy = new Mat();
-        List<Rect> boxes = new ArrayList<>();
-
-        Mat structure = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(2,30));
-        Imgproc.morphologyEx(blueBinary,blueBinary,Imgproc.MORPH_CLOSE, structure);
-
-        Imgproc.findContours(blueBinary, contours, hierarchy, Imgproc.RETR_TREE, Imgproc.CHAIN_APPROX_SIMPLE);
-        hierarchy.release();
-
-        this.window(MatToBufferedImage(blueBinary), "Final", 0, 0);
+//        List<MatOfPoint> contours = new ArrayList<>();
+//        Mat hierarchy = new Mat();
+//        List<Rect> boxes = new ArrayList<>();
+//
+//        Mat structure = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(2,30));
+//        Imgproc.morphologyEx(blueBinary,blueBinary,Imgproc.MORPH_CLOSE, structure);
+//
+//        Imgproc.findContours(blueBinary, contours, hierarchy, Imgproc.RETR_TREE, Imgproc.CHAIN_APPROX_SIMPLE);
+//        hierarchy.release();
+//
+//        this.window(MatToBufferedImage(blueBinary), "Contours", 0, 0);
     }
 
     private void reference(Mat raw) {
