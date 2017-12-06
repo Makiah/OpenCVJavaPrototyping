@@ -8,6 +8,7 @@ import java.awt.image.WritableRaster;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 
 import javax.imageio.ImageIO;
@@ -15,6 +16,7 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 
 import org.opencv.core.*;
+import org.opencv.imgproc.CLAHE;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.videoio.VideoCapture;
 
@@ -45,8 +47,6 @@ class JPanelOpenCV extends JPanel{
                     BufferedImage image = t.MatToBufferedImage(frame);
 
                     t.window(image, "Original Image", 0, 0);
-
-                    t.window(t.grayscale(image), "Grayscale Image", 40, 60);
 
                     // The customly modified image.
                     t.analyzeNewMat(frame);
@@ -149,11 +149,49 @@ class JPanelOpenCV extends JPanel{
         return image;
     }
 
+
+    //////////// OPEN CV //////////////
+
     /**
      * This is where pretty much of all of the prototyping code should go.
      */
     public void analyzeNewMat(Mat raw)
     {
+        /////// RESIZE IMAGE ///////
+        Imgproc.resize(raw, raw, new Size(740, 480));
+        this.window(MatToBufferedImage(raw), "Resized", 0, 0);
+
+
+        ////// Equalize luminance ///////
+        Imgproc.cvtColor(raw, raw, Imgproc.COLOR_BGR2HLS);
+        List<Mat> channels = new LinkedList<Mat>();
+        Core.split(raw, channels);
+        channels.get(1).setTo(new Scalar(150));
+        Core.merge(channels, raw);
+        Imgproc.cvtColor(raw, raw, Imgproc.COLOR_HLS2BGR);
+        this.window(MatToBufferedImage(raw), "Equalized", 500, 0);
+
+
+        ////// Extract blue region ///////
+        List<Mat> bgrChannels = new LinkedList<Mat>();
+        Core.split(raw, bgrChannels);
+        Mat blueGrayscale = bgrChannels.get(0);
+        this.window(MatToBufferedImage(blueGrayscale), "Blue Grayscale", 0, 380);
+
+        /////// Absolute threshold to determine which pixels are correct.   ///////
+        Mat blueBinary = new Mat();
+        Imgproc.threshold(blueGrayscale, blueBinary, 200, 255, Imgproc.THRESH_BINARY);
+        this.window(MatToBufferedImage(blueBinary), "Blue Binary", 500, 380);
+
+    }
+
+    private void reference(Mat raw) {
+        //Imgproc.cvtColor(raw, raw, Imgproc.COLOR_BGR2HSV);
+        //Core.inRange(raw,
+        //        new Scalar(60, 0, 0),
+        //        new Scalar(200, 255, 100), raw);
+        //this.window(MatToBufferedImage(raw), "HSV filter", 0, 380);
+
         Imgproc.resize(raw,raw,new Size(480,360));
 
         Mat hsv = new Mat();
