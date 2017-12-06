@@ -167,6 +167,7 @@ class JPanelOpenCV extends JPanel{
         List<Mat> channels = new LinkedList<Mat>();
         Core.split(raw, channels);
         channels.get(1).setTo(new Scalar(150));
+        channels.get(2).setTo(new Scalar(150));
         Core.merge(channels, raw);
         Imgproc.cvtColor(raw, raw, Imgproc.COLOR_HLS2BGR);
         this.window(MatToBufferedImage(raw), "Equalized", 500, 0);
@@ -183,6 +184,28 @@ class JPanelOpenCV extends JPanel{
         Imgproc.threshold(blueGrayscale, blueBinary, 200, 255, Imgproc.THRESH_BINARY);
         this.window(MatToBufferedImage(blueBinary), "Blue Binary", 500, 380);
 
+
+        ////// Erode and dilate the resulting image to remove noise ////////
+        Imgproc.blur(blueBinary, blueBinary, new Size(3, 3));
+        Mat kernel = Mat.ones(8,8,CvType.CV_32F);
+        Imgproc.erode(blueBinary,blueBinary,kernel);
+        Imgproc.dilate(blueBinary,blueBinary,kernel);
+        Imgproc.threshold(blueBinary, blueBinary, 150, 255, Imgproc.THRESH_BINARY);
+        this.window(MatToBufferedImage(blueBinary), "Dilated Blue Binary", 0, 0);
+
+
+        /////// Find contours of approximately the cryptobox's shape ///////
+        List<MatOfPoint> contours = new ArrayList<>();
+        Mat hierarchy = new Mat();
+        List<Rect> boxes = new ArrayList<>();
+
+        Mat structure = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(2,30));
+        Imgproc.morphologyEx(blueBinary,blueBinary,Imgproc.MORPH_CLOSE, structure);
+
+        Imgproc.findContours(blueBinary, contours, hierarchy, Imgproc.RETR_TREE, Imgproc.CHAIN_APPROX_SIMPLE);
+        hierarchy.release();
+
+        this.window(MatToBufferedImage(blueBinary), "Final", 0, 0);
     }
 
     private void reference(Mat raw) {
