@@ -8,14 +8,14 @@ import org.opencv.imgproc.Imgproc;
 
 import java.util.LinkedList;
 
-public class CryptoboxMask implements FrameAnalyzer
+public class CryptoboxPixel implements FrameAnalyzer
 {
     public static void main(String[] args)
     {
-        new CryptoboxMask();
+        new CryptoboxPixel();
     }
 
-    public CryptoboxMask()
+    public CryptoboxPixel()
     {
         CVManager.runOn(this);
     }
@@ -30,21 +30,24 @@ public class CryptoboxMask implements FrameAnalyzer
 
         ///// Get rid of high luminance pixels (working in HLS space) ////
         Imgproc.cvtColor(raw, raw, Imgproc.COLOR_BGR2HLS);
-        LinkedList<Mat> channels = new LinkedList<>();
-        Core.split(raw, channels);
-        Mat mask = new Mat();
-        Imgproc.threshold(channels.get(1), mask, 0, 170, Imgproc.THRESH_BINARY + Imgproc.THRESH_OTSU);
-        new CVJPanel(mask, "Mask 1", 500, 380);
-        channels.get(1).setTo(new Scalar(100), mask);
-        new CVJPanel(channels.get(1), "Is now", 0, 0);
-        channels.get(2).setTo(new Scalar(255), mask);
-//        Core.bitwise_not(mask, mask);
-//        new CVJPanel(mask, "Mask 2", 500, 0);
-//        channels.get(1).setTo(new Scalar(0), mask);
-        Core.merge(channels, raw);
+
+        for (int y = 0; y < raw.rows(); y++)
+        {
+            for (int x = 0; x < raw.cols(); x++)
+            {
+                double[] pixel = raw.get(y, x);
+
+                // Fix saturation
+                pixel[2] = 255;
+                pixel[1] = 100;
+
+                raw.put(y, x, pixel);
+            }
+        }
 
         ////// Filter based on RGB ///////
         Imgproc.cvtColor(raw, raw, Imgproc.COLOR_HLS2BGR);
+        new CVJPanel(raw, "Recolor");
         Core.inRange(raw,
                 new Scalar(120, 0, 0),
                 new Scalar(255, 120, 52), raw);

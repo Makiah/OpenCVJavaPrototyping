@@ -14,7 +14,7 @@ public class CVJPanel extends JPanel
 
     public CVJPanel(Mat image, String text)
     {
-        this(image, "", 0, 0);
+        this(image, text, 0, 0);
     }
 
     public CVJPanel(Mat mat, String text, int x, int y)
