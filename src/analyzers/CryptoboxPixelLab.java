@@ -68,29 +68,39 @@ public class CryptoboxPixelLab implements FrameAnalyzer
 
         Imgproc.equalizeHist(blueRegion, blueRegion);
 
-        Imgproc.threshold(blueRegion, blueRegion, 150, 255, Imgproc.THRESH_BINARY);
+        Imgproc.threshold(blueRegion, blueRegion, 180, 255, Imgproc.THRESH_BINARY);
 
         //Mat kernelRectangle = Mat.ones(60, 1, CvType.CV_32F);
         //Imgproc.dilate(blueRegion, blueRegion, kernelRectangle);
 
         //Imgproc.blur(blueRegion, blueRegion, new Size(6, 6));
 
-        Mat widthErode = Mat.ones(1, 5, CvType.CV_32F);
-        Imgproc.erode(blueRegion, blueRegion, widthErode);
+//        Mat widthErode = Mat.ones(1, 3, CvType.CV_32F);
+//        Imgproc.erode(blueRegion, blueRegion, widthErode);
+
+
+        Imgproc.blur(blueRegion, blueRegion, new Size(3, 10));
+        Imgproc.threshold(blueRegion, blueRegion, 180, 255, Imgproc.THRESH_BINARY);
 
         new CVJPanel(blueRegion, "Width erode", 500, 0);
 
         Mat structure = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(5,10));
         Imgproc.morphologyEx(blueRegion,blueRegion,Imgproc.MORPH_CLOSE, structure);
 
+        Imgproc.blur(blueRegion, blueRegion, new Size(1, 10));
+        Imgproc.threshold(blueRegion, blueRegion, 180, 255, Imgproc.THRESH_BINARY);
+
         new CVJPanel(blueRegion, "Blue channel", 0, 0);
 
-        Mat finalErode = Mat.ones(1, 5, CvType.CV_32F);
+        Mat finalErode = Mat.ones(1, 3, CvType.CV_32F);
         Imgproc.erode(blueRegion, blueRegion, finalErode);
-
-        Mat finalDilate = Mat.ones(6, 3, CvType.CV_32F);
+        Imgproc.morphologyEx(blueRegion,blueRegion,Imgproc.MORPH_CLOSE, structure);
+        Mat finalDilate = Mat.ones(3, 2, CvType.CV_32F);
         Imgproc.dilate(blueRegion, blueRegion, finalDilate);
 
+
         new CVJPanel(blueRegion, "Finalizations", 500, 380);
+//
+//
     }
 }
