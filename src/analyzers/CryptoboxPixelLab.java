@@ -32,6 +32,7 @@ public class CryptoboxPixelLab implements FrameAnalyzer
         // Resize picture to phone space.
         Imgproc.resize(raw, raw, new Size(700, 360));
 
+        // Blur image to reduce noise slightly.
         Imgproc.blur(raw, raw, new Size(3, 3));
 
         // Work in Hue Luminance Saturation Space.
@@ -46,7 +47,7 @@ public class CryptoboxPixelLab implements FrameAnalyzer
         Imgproc.dilate(channels.get(1),channels.get(1),kernel);
         new CVJPanel(channels.get(1), "Luminance Thresholds", 0, 0);
 
-        // Merge artificial contours into raw, and move back to normal color space.
+        // Merge artificial contours into raw, and move back to BGR color space.
         Core.merge(channels, raw);
         Imgproc.cvtColor(raw, raw, Imgproc.COLOR_HLS2BGR);
         new CVJPanel(raw, "Raw", 500, 0);
@@ -66,7 +67,18 @@ public class CryptoboxPixelLab implements FrameAnalyzer
         //Imgproc.morphologyEx(blueRegion,blueRegion,Imgproc.MORPH_CLOSE, structure);
         Imgproc.dilate(blueRegion, blueRegion, kernel);
 
-        Core.subtract(blueRegion, new Scalar(100), blueRegion);
+        Imgproc.blur(blueRegion, blueRegion, new Size(3, 3));
+
+        Imgproc.equalizeHist(blueRegion, blueRegion);
+
+        Imgproc.threshold(blueRegion, blueRegion, 200, 255, Imgproc.THRESH_BINARY);
+
+//        Imgproc.erode(blueRegion,blueRegion,kernel);
+//        Imgproc.dilate(blueRegion,blueRegion,kernel);
+
+        //Imgproc.adaptiveThreshold(blueRegion, blueRegion, 150, Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C, Imgproc.THRESH_BINARY, 11, 2);
+
+        //Core.subtract(blueRegion, new Scalar(100), blueRegion);
 
         new CVJPanel(blueRegion, "Blue channel", 500, 380);
 
