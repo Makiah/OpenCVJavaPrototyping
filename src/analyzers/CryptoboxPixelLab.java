@@ -41,65 +41,56 @@ public class CryptoboxPixelLab implements FrameAnalyzer
         Core.split(raw, channels);
 
         // Use adaptive threshold to artificially create luminance contours.
-        Imgproc.adaptiveThreshold(channels.get(1), channels.get(1), 150, Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C, Imgproc.THRESH_BINARY, 11, 2);
+        Imgproc.adaptiveThreshold(channels.get(1), channels.get(1), 150, Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C, Imgproc.THRESH_BINARY, 9, 2);
         //Imgproc.blur(channels.get(1), channels.get(1), new Size(1, 10));
         Imgproc.erode(channels.get(1),channels.get(1),kernel);
         Imgproc.dilate(channels.get(1),channels.get(1),kernel);
-        new CVJPanel(channels.get(1), "Luminance Thresholds", 0, 0);
+        //Imgproc.threshold(channels.get(1), channels.get(1), 0, 50, Imgproc.THRESH_BINARY);
+        //Imgproc.cvtColor(channels.get(1), channels.get(1), GRAY);
+        //new CVJPanel(channels.get(1), "Luminance Thresholds", 0, 0);
 
         // Merge artificial contours into raw, and move back to BGR color space.
         Core.merge(channels, raw);
         Imgproc.cvtColor(raw, raw, Imgproc.COLOR_HLS2BGR);
-        new CVJPanel(raw, "Raw", 500, 0);
+        //new CVJPanel(raw, "Raw", 500, 0);
 
         // Extract blue channel
         LinkedList<Mat> bgrChannels = new LinkedList<>();
         Core.split(raw, bgrChannels);
-        new CVJPanel(bgrChannels.get(0), "Blue channel", 0, 380);
+        //new CVJPanel(bgrChannels.get(0), "Blue channel", 0, 380);
 
         // Extract blue regions using ANOTHER adaptive threshold.
         Mat blueRegion = bgrChannels.get(0).clone();
 //        Mat structure = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(10,2));
 //        Imgproc.morphologyEx(blueRegion,blueRegion,Imgproc.MORPH_CLOSE, structure);
 
-        Mat kernelRectangle = Mat.ones(15, 1, CvType.CV_32F);
-        //Mat structure = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(1,15));
-        //Imgproc.morphologyEx(blueRegion,blueRegion,Imgproc.MORPH_CLOSE, structure);
-        Imgproc.dilate(blueRegion, blueRegion, kernel);
-
-        Imgproc.blur(blueRegion, blueRegion, new Size(3, 3));
+        new CVJPanel(blueRegion, "Blue region", 0, 380);
 
         Imgproc.equalizeHist(blueRegion, blueRegion);
 
-        Imgproc.threshold(blueRegion, blueRegion, 200, 255, Imgproc.THRESH_BINARY);
+        Imgproc.threshold(blueRegion, blueRegion, 150, 255, Imgproc.THRESH_BINARY);
 
-//        Imgproc.erode(blueRegion,blueRegion,kernel);
-//        Imgproc.dilate(blueRegion,blueRegion,kernel);
+        //Mat kernelRectangle = Mat.ones(60, 1, CvType.CV_32F);
+        //Imgproc.dilate(blueRegion, blueRegion, kernelRectangle);
 
-        //Imgproc.adaptiveThreshold(blueRegion, blueRegion, 150, Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C, Imgproc.THRESH_BINARY, 11, 2);
+        //Imgproc.blur(blueRegion, blueRegion, new Size(6, 6));
 
-        //Core.subtract(blueRegion, new Scalar(100), blueRegion);
+        Mat widthErode = Mat.ones(1, 5, CvType.CV_32F);
+        Imgproc.erode(blueRegion, blueRegion, widthErode);
 
-        new CVJPanel(blueRegion, "Blue channel", 500, 380);
+        new CVJPanel(blueRegion, "Width erode", 500, 0);
 
+        Mat structure = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(5,10));
+        Imgproc.morphologyEx(blueRegion,blueRegion,Imgproc.MORPH_CLOSE, structure);
 
-        if (true)
-            return;
+        new CVJPanel(blueRegion, "Blue channel", 0, 0);
 
-        ////// Filter based on RGB ///////
-        Imgproc.cvtColor(raw, raw, Imgproc.COLOR_HLS2BGR);
-        new CVJPanel(raw, "Recolor");
-        Core.inRange(raw,
-                new Scalar(120, 0, 0),
-                new Scalar(255, 120, 52), raw);
+        Mat finalErode = Mat.ones(1, 5, CvType.CV_32F);
+        Imgproc.erode(blueRegion, blueRegion, finalErode);
 
-        ////// Get rid of excessive noise ///////
-        Imgproc.blur(raw, raw, new Size(1, 5));
-        //Mat kernel = Mat.ones(15,3, CvType.CV_32F);
-        Imgproc.erode(raw,raw,kernel);
-        Imgproc.dilate(raw,raw,kernel);
-        Imgproc.threshold(raw, raw, 200, 255, Imgproc.THRESH_BINARY);
+        Mat finalDilate = Mat.ones(6, 3, CvType.CV_32F);
+        Imgproc.dilate(blueRegion, blueRegion, finalDilate);
 
-        //new CVJPanel(raw, "Final");
+        new CVJPanel(blueRegion, "Finalizations", 500, 380);
     }
 }
