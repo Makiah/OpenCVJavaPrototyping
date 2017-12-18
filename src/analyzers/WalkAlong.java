@@ -170,13 +170,13 @@ public class WalkAlong implements FrameAnalyzer
             }
 
             // If this isn't a column, then make it appear as empty.
-//            if (!(pixelQuantities[0] > .1 * camResolution.height && pixelQuantities[1] > .1 * camResolution.height))
-//            {
-//                for (int j = 0; j < pixelColumn.length; j++)
-//                {
-//                    raw.put(j, x, 0, 0, 0);
-//                }
-//            }
+            if (!(pixelQuantities[0] > .6 * camResolution.height && pixelQuantities[1] > .1 * camResolution.height))
+            {
+                for (int j = 0; j < pixelColumn.length; j++)
+                {
+                    raw.put(j, x, 0, 0, 0);
+                }
+            }
         }
 
         Imgproc.cvtColor(raw, raw, Imgproc.COLOR_HSV2BGR);
