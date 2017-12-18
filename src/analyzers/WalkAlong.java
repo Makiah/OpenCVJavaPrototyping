@@ -27,6 +27,38 @@ public class WalkAlong implements FrameAnalyzer
         PRIMARY, WHITE, NONE
     }
 
+    public Mat getMatFromCryptoColors(CryptoColor[][] cryptoColors)
+    {
+        // Square.
+        int cols = cryptoColors.length;
+        int rows = cryptoColors[0].length;
+
+        Mat toReturn = new Mat(rows, cols, CvType.CV_8UC3);
+
+        for (int row = 0; row < rows; row++)
+        {
+            for (int col = 0; col < cols; col++)
+            {
+                switch (cryptoColors[col][row])
+                {
+                    case PRIMARY:
+                        toReturn.put(row, col, 100, 255, 255);
+                        break;
+
+                    case WHITE:
+                        toReturn.put(row, col, 0, 0, 255);
+                        break;
+
+                    case NONE:
+                        toReturn.put(row, col, 0, 0, 0);
+                        break;
+                }
+            }
+        }
+
+        return toReturn;
+    }
+
     private CryptoColor getProminentColorFrom(CryptoColor[] colors)
     {
         int primaries = 0, whites = 0, nones = 0;
@@ -94,31 +126,36 @@ public class WalkAlong implements FrameAnalyzer
         new CVJPanel(raw, "Lighting fix");
 
         Imgproc.blur(raw, raw, new Size(3, 3));
-
         Imgproc.cvtColor(raw, raw, Imgproc.COLOR_BGR2HSV);
-        for (int x = 0; x < raw.cols(); x++)
+
+
+
+        CryptoColor[][] pixelColumns = new CryptoColor[raw.cols()][raw.rows()];
+
+
+        // Process the original image into CryptoColors.
+        for (int colIndex = 0; colIndex < raw.cols(); colIndex++)
         {
             CryptoColor[] pixelColumn = new CryptoColor[raw.height()];
 
-            int bluePixels = 0, whitePixels = 0, otherPixels = 0;
-
             // Define the pixel column
-            for (int y = 0; y < raw.rows(); y++)
-            {
-                double[] pixel = raw.get(y, x);
+            for (int y = 0; y < raw.rows(); y++) {
+                double[] pixel = raw.get(y, colIndex);
 
-                if (pixel[0] > 100 - .1 * (pixel[2] - 90) && pixel[0] < 190 - .1 * (pixel[2] - 90) && pixel[1] > 50 - .2 * (pixel[2] - 90))
-                {
+                double blueHueMin = 75 - .3 * (pixel[2] - 55);
+                double blueHueMax = 135 - .3 * (pixel[2] - 55);
+                double blueSatMin = 50 + .1 * (pixel[2] - 55);
+
+                double whiteSatMax = 52;
+                double whiteValMin = 69;
+
+                if ((blueHueMin < pixel[0] && pixel[0] < blueHueMax) && blueSatMin < pixel[1]) {
+                    System.out.println("Pixel 2 is " + pixel[2]);
+
                     pixelColumn[y] = CryptoColor.PRIMARY;
-                    bluePixels++;
-                }
-                else if (pixel[1] < 56 && pixel[2] > 69)
-                {
+                } else if (pixel[1] < whiteSatMax && whiteValMin < pixel[2]) {
                     pixelColumn[y] = CryptoColor.WHITE;
-                    whitePixels++;
-                }
-                else
-                {
+                } else {
                     pixelColumn[y] = CryptoColor.NONE;
                 }
             }
@@ -127,33 +164,26 @@ public class WalkAlong implements FrameAnalyzer
 //            if (bluePixels < camResolution.height / 5 && whitePixels < camResolution.height / 10)
 //                continue;
 
+            pixelColumns[colIndex] = pixelColumn;
+        }
+        new CVJPanel(getMatFromCryptoColors(pixelColumns), "CryptoColor conversion");
+
+
+        // Blur the resulting CryptoColor image.
+        for (int colIndex = 0; colIndex < pixelColumns.length; colIndex++)
             // Blur the column.
-            pixelColumn = blurColumnArray(pixelColumn, 5);
+            pixelColumns[colIndex] = blurColumnArray(pixelColumns[colIndex], 5);
+        new CVJPanel(getMatFromCryptoColors(pixelColumns), "Blurred", 600, 0);
 
-            // Apply this back to the original image and just see what's up with it now.
-            for (int j = 0; j < pixelColumn.length; j++)
-            {
-                switch(pixelColumn[j])
-                {
-                    case NONE:
-                        raw.put(j, x, 0, 0, 0);
-                        break;
 
-                    case PRIMARY:
-                        raw.put(j, x, 70, 255, 120);
-                        break;
-
-                    case WHITE:
-                        raw.put(j, x, 0, 0, 255);
-                        break;
-                }
-            }
-
+        // Filter through the columns
+        for (int colIndex = 0; colIndex < pixelColumns.length; colIndex++)
+        {
             // Now start filtering out non-columns
             int[] pixelQuantities = new int[3];
-            for (int j = 0; j < pixelColumn.length; j++)
+            for (int i = 0; i < pixelColumns[colIndex].length; i++)
             {
-                switch (pixelColumn[j])
+                switch (pixelColumns[colIndex][i])
                 {
                     case PRIMARY:
                         pixelQuantities[0]++;
@@ -172,14 +202,15 @@ public class WalkAlong implements FrameAnalyzer
             // If this isn't a column, then make it appear as empty.
             if (!(pixelQuantities[0] > .6 * camResolution.height && pixelQuantities[1] > .1 * camResolution.height))
             {
-                for (int j = 0; j < pixelColumn.length; j++)
+                for (int j = 0; j < pixelColumns[colIndex].length; j++)
                 {
-                    raw.put(j, x, 0, 0, 0);
+                    pixelColumns[colIndex][j] = CryptoColor.NONE;
                 }
             }
         }
+        new CVJPanel(getMatFromCryptoColors(pixelColumns), "Filtered", 550, 0);
+
 
         Imgproc.cvtColor(raw, raw, Imgproc.COLOR_HSV2BGR);
-        new CVJPanel(raw, "Processed", 550, 0);
     }
 }
